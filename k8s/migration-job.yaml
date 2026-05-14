@@ -1,0 +1,39 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: billing-migration
+  namespace: billing
+spec:
+  ttlSecondsAfterFinished: 300
+  backoffLimit: 2
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migration
+          image: IMAGE_PLACEHOLDER
+          command:
+            - node
+            - -e
+            - |
+              const { DataSource } = require('typeorm');
+              const { ChargeOrmEntity } = require('./dist/src/modules/billing/infrastructure/persistence/charge.typeorm.entity');
+              const { CreateChargesTable1 } = require('./dist/src/modules/billing/infrastructure/persistence/migrations/1-CreateChargesTable');
+              const ds = new DataSource({
+                type: 'postgres',
+                host: process.env.DB_HOST,
+                port: +process.env.DB_PORT,
+                username: process.env.DB_USER,
+                password: process.env.DB_PASS,
+                database: process.env.DB_NAME,
+                ssl: { rejectUnauthorized: false },
+                entities: [ChargeOrmEntity],
+                migrations: [CreateChargesTable1],
+              });
+              ds.initialize()
+                .then(() => ds.runMigrations())
+                .then((m) => { console.log('Migrations:', m.length); process.exit(0); })
+                .catch((e) => { console.error(e); process.exit(1); });
+          envFrom:
+            - secretRef:
+                name: billing-secrets
