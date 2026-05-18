@@ -1,118 +1,197 @@
-# Billing Service
+# autoflow-payment-service
 
-Microsservico responsavel pelo ciclo de vida de cobranças, integração com Mercado Pago e notificação de resultado de pagamento.
+> Microsserviço de **cobranças e integração com Mercado Pago** do ecossistema **autoflow** (FIAP Tech Challenge — Fase 4).
 
-## Arquitetura
+Responsável por:
 
-- Estilo: microsservicos com comunicacao sincrona (REST) e assincrona (RabbitMQ).
-- Banco: PostgreSQL.
-- Mensageria: RabbitMQ com topico `payment.events` para publicacao e `order.events` para consumo.
+- Criar uma `Charge` quando o `order-service` publica `order.payment.requested`.
+- Gerar a preferência de pagamento (real ou mock) no Mercado Pago.
+- Processar webhooks de pagamento (`/billing/webhook/mercadopago`) e atualizar o status da `Charge`.
+- Publicar o resultado em `payment.events` (`payment.confirmed` / `payment.failed` / `payment.refunded`).
+- Expor endpoints mock para simular aprovação/rejeição em ambientes locais.
 
-## Responsabilidades
+---
 
-- Consumir evento de pagamento solicitado pelo order-service e criar cobrança no Mercado Pago.
-- Receber webhooks do Mercado Pago e processar resultado do pagamento.
-- Publicar eventos de resultado de pagamento para o order-service.
-- Registrar log de webhooks recebidos.
+## 🧱 Stack
 
-## Ciclo de vida da cobrança
+| Camada       | Tecnologia                                |
+|--------------|-------------------------------------------|
+| Runtime      | Node.js 24 (LTS)                          |
+| Linguagem    | TypeScript (strict)                       |
+| Framework    | NestJS 11                                 |
+| Banco        | PostgreSQL 16 (TypeORM + migrations)      |
+| Mensageria   | RabbitMQ (`amqp-connection-manager`)      |
+| Pagamento    | `mercadopago` SDK + adapter mock          |
+| Observ.      | New Relic APM + canonical logs (Winston)  |
+| Testes       | Jest + Cucumber (BDD)                     |
+| Container    | Docker multi-stage                        |
+| Deploy       | EKS via GitHub Actions                    |
 
-`PENDING -> APPROVED | REJECTED | EXPIRED`
+---
 
-Fluxo de reembolso:
+## 🏛️ Arquitetura
 
-- `APPROVED -> REFUNDED`
+**Modular hexagonal** por feature. O módulo `billing/` segue `domain → application → infrastructure → presentation`.
 
-## Saga Pattern
+```
+src/
+├── modules/
+│   └── billing/
+│       ├── domain/
+│       │   ├── charge.entity.ts          ← agregado (status: PENDING|APPROVED|REJECTED|EXPIRED|REFUNDED)
+│       │   ├── charge.repository.ts      ← port
+│       │   ├── ports/
+│       │   │   ├── mercado-pago.port.ts
+│       │   │   └── event-publisher.port.ts
+│       │   └── value-objects/
+│       │       ├── charge-id.vo.ts
+│       │       └── charge-status.vo.ts
+│       ├── application/use-cases/
+│       │   ├── create-charge/            ← idempotente por serviceOrderId
+│       │   ├── get-charge/
+│       │   └── process-webhook/          ← persiste WebhookEvent + transiciona Charge
+│       ├── infrastructure/
+│       │   ├── mercado-pago/             ← MercadoPagoAdapter + MercadoPagoMockAdapter
+│       │   ├── messaging/                ← payment-requested-consumer + billing-event-publisher
+│       │   └── persistence/              ← TypeORM entities, mapper, repos + migrations
+│       └── presentation/http/            ← Charge/Webhook/MockPayment controllers + DTOs
+├── infrastructure/
+│   └── messaging/                        ← EventPublisherService base (RMQ connection wrapper)
+├── shared/
+│   ├── domain/exceptions/                ← BusinessRule, NotFound
+│   ├── filters/                          ← HttpExceptionFilter
+│   ├── infrastructure/
+│   │   ├── config/                       ← env schema (Joi)
+│   │   └── health/                       ← HealthController + Terminus
+│   ├── logger/, middlewares/, observability/
+└── data-source.ts                        ← TypeORM datasource standalone (migrations CLI)
+```
 
-- Estrategia: **Coreografada**.
-- Justificativa: reduz acoplamento, distribui responsabilidade de reacao por evento entre servicos.
-- Pontos principais:
-  - Billing reage ao evento `PAYMENT_REQUESTED` publicado pelo order-service.
-  - Billing publica eventos de resultado (`PAYMENT_CONFIRMED`, `PAYMENT_FAILED`, `PAYMENT_REFUNDED`).
+---
 
-## Eventos publicados e consumidos
+## 🌐 Endpoints REST (via Kong)
 
-Publicados (payment.events):
+### Charges — `/billing/charges/*`
+| Método | Path                                       | Descrição                                  |
+|--------|--------------------------------------------|--------------------------------------------|
+| GET    | `/billing/charges/:chargeId`               | Detalhe da charge                          |
+| GET    | `/billing/charges/order/:serviceOrderId`   | Charge associada a uma OS                  |
 
-- `PAYMENT_CONFIRMED` (`payment.confirmed`)
-- `PAYMENT_FAILED` (`payment.failed`)
-- `PAYMENT_REFUNDED` (`payment.refunded`)
+### Webhook — `/billing/webhook/*`
+| Método | Path                                       | Descrição                                  |
+|--------|--------------------------------------------|--------------------------------------------|
+| POST   | `/billing/webhook/mercadopago`             | Webhook do MP — chamado pelo MP (sem JWT)  |
 
-Consumidos (order.events):
+### Mock (apenas em ambientes não-produção) — `/billing/mock/*`
+| Método | Path                                       | Descrição                                  |
+|--------|--------------------------------------------|--------------------------------------------|
+| POST   | `/billing/mock/approve/:mpPaymentId`       | Aprova um pagamento mock                   |
+| POST   | `/billing/mock/reject/:mpPaymentId`        | Rejeita um pagamento mock                  |
+| POST   | `/billing/mock/simulate-webhook`           | Simula chamada de webhook do MP            |
 
-- `PAYMENT_REQUESTED` (`order.payment.requested`)
+### Health
+- `GET /health` (Postgres + service status)
+- `GET /billing/health/liveness` / `GET /billing/health/readiness` (Terminus)
 
-## Como rodar localmente
+Swagger em `/api/docs`.
+
+---
+
+## 📬 Eventos RabbitMQ
+
+### Consumidos — `order.events` (topic)
+
+| Queue                              | Binding (routing key)        | Efeito                                  |
+|------------------------------------|------------------------------|-----------------------------------------|
+| `billing.payment.requested`        | `order.payment.requested`    | Cria `Charge` via `CreateChargeUseCase` |
+
+### Publicados — `payment.events` (topic)
+
+| Routing key            | Origem (event.type interno)          | Quando                            |
+|------------------------|--------------------------------------|-----------------------------------|
+| `payment.confirmed`    | `payment.approved`                   | Webhook MP → status approved      |
+| `payment.failed`       | `payment.rejected`                   | Webhook MP → status rejected      |
+| `payment.refunded`     | `payment.refunded`                   | Refund manual                     |
+
+Payload: `{ orderId, reason? }`. `reason` é incluído apenas em falhas.
+
+---
+
+## ⚠️ Limitações conhecidas
+
+- **MercadoPagoMockAdapter** mantém estado em memória (Map de pagamentos). Em modo mock, o serviço **deve rodar com replicas=1** (HPA disabled) — múltiplas instâncias quebram a referência ao pagamento mock criado em outra réplica. Em produção (adapter real do MP), não há essa restrição.
+- Sem migrations para usuário de dev — banco é provisionado pelo `autoflow-infra/scripts/aws-lab-deploy.sh` ou `local/bootstrap.sh`.
+
+---
+
+## 🔧 Variáveis de ambiente
+
+| Variável                   | Default                                   | Descrição                                |
+|----------------------------|-------------------------------------------|------------------------------------------|
+| `PORT`                     | `3004`                                    | porta HTTP                                |
+| `NODE_ENV`                 | `development`                             | `production` ativa o adapter real do MP   |
+| `DATABASE_HOST` …          | (idem outros serviços)                    | conexão Postgres                          |
+| `RABBITMQ_URL`             | `amqp://localhost:5672`                   | conexão RMQ                               |
+| `MP_ACCESS_TOKEN`          | —                                         | token do Mercado Pago (real ou sandbox)   |
+| `MP_NOTIFICATION_URL`      | —                                         | URL pública do webhook (MP chama de fora) |
+| `NEW_RELIC_LICENSE_KEY`    | —                                         | (opcional) APM                            |
+
+Validação Joi via `env.schema.ts` — app não sobe sem as obrigatórias.
+
+---
+
+## 🚀 Rodar localmente
 
 ```bash
 npm install
-docker compose up postgres rabbitmq -d
-cp .env.example .env  # ajuste os valores conforme necessario
+docker compose up -d        # Postgres + RabbitMQ
 npm run migration:run
 npm run start:dev
 ```
 
-## Como rodar os testes
+Em modo mock (`NODE_ENV != production`), o `MercadoPagoMockAdapter` é injetado e os endpoints `/billing/mock/*` ficam ativos.
+
+Integração completa: `cd ../autoflow-infra/local && ./bootstrap.sh`.
+
+---
+
+## 🧪 Testes
 
 ```bash
-npm run test -- --runInBand
-npm run test:cov
-npm run test:bdd
+npm run test           # unit
+npm run test:cov       # threshold 80% global
+npm run test:bdd       # Cucumber (features/)
+npm run lint           # ESLint
+npm run format:check   # Prettier
 ```
 
-## Evidencias de cobertura
+**Coverage atual:** **92.71 / 82.29 / 90.10 / 92.68** (statements / branches / functions / lines).
 
-- Cobertura validada localmente via `npm run test:cov`.
-- Threshold global configurado no `jest.config.ts`.
+> **TODO:** SonarQube Community.
 
-## Evidencias de pipeline CI/CD
+---
 
-- Workflow CD: `.github/workflows/ci-cd.yml` — build/test, build de imagem e deploy (main/develop).
-- Workflow CI: `.github/workflows/ci.yml` — lint, test e SonarQube (pull requests).
+## 🐳 Docker / ☸️ Deploy
 
-## Link do Swagger
+| Workflow | Trigger                          | Jobs                              |
+|----------|----------------------------------|-----------------------------------|
+| `ci.yml` | push/PR em qualquer branch       | lint + format:check + test:cov + bdd |
+| `cd.yml` | `workflow_run` (CI ok em `main`) | DockerHub + EKS rollout           |
 
-- UI: `http://localhost:3001/docs`
-- Spec JSON: `swagger.json` (gerado no bootstrap da aplicacao).
+Imagem: `kaikelfalcao/autoflow-payment:<sha>`. Cluster `autoflow-dev-eks` / namespace `autoflow`.
 
-## Tecnologias utilizadas
+Migrations executadas via Job no k8s (`k8s/migration-job.yaml`) antes do rollout do Deployment.
 
-- NestJS
-- TypeORM
-- PostgreSQL
-- RabbitMQ
-- Mercado Pago SDK
-- Jest
-- Cucumber
-- Docker
-- Kubernetes
+---
 
-## Docker
+## 📊 Observabilidade
 
-```bash
-docker build -t billing-service:local .
-docker run --rm -p 3001:3001 \
-  -e DB_HOST=host.docker.internal \
-  -e DB_PORT=5432 \
-  -e DB_USER=billing \
-  -e DB_PASS=billing \
-  -e DB_NAME=billing \
-  -e RABBITMQ_URL=amqp://guest:guest@host.docker.internal:5672 \
-  -e MP_ACCESS_TOKEN=TEST-xxxx \
-  -e MP_NOTIFICATION_URL=https://your-domain.com/billing/webhook/mercadopago \
-  billing-service:local
-```
+- Logs canônicos por request HTTP, por evento RMQ e por interação com o SDK do MP.
+- WebhookEvent persistido em tabela própria (audit log) antes de transicionar a Charge.
+- Custom events no New Relic: `ChargeCreated`, `PaymentApproved`, `PaymentRejected`, `WebhookReceived`.
 
-## Kubernetes (manifests)
+---
 
-```bash
-kubectl apply -f k8s/namespace.yaml
-kubectl apply -f k8s/configmap.yaml
-kubectl apply -f k8s/secret.yaml
-kubectl apply -f k8s/deployment.yaml
-kubectl apply -f k8s/service.yaml
-kubectl apply -f k8s/hpa.yaml
-kubectl apply -f k8s/migration-job.yaml
-```
+## 🔗 Ecossistema
 
+[`autoflow-infra`](https://github.com/kaikelfalcao/autoflow-infra) · [`autoflow-identity-service`](https://github.com/kaikelfalcao/autoflow-identity-service) · [`autoflow-order-service`](https://github.com/kaikelfalcao/autoflow-order-service) · [`autoflow-catalog-service`](https://github.com/kaikelfalcao/autoflow-catalog-service) · [`autoflow-saga-orchestrator`](https://github.com/kaikelfalcao/autoflow-saga-orchestrator) · [`autoflow-notification-service`](https://github.com/kaikelfalcao/autoflow-notification-service)

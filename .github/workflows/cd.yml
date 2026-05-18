@@ -1,53 +1,26 @@
-name: CI/CD
+name: CD
 
 on:
-  push:
-    branches: ['**']
-  pull_request:
-    branches: ['**']
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
 
 env:
   IMAGE_NAME: kaikelfalcao/autoflow-payment
-  NODE_VERSION: '20'
 
 jobs:
-  test:
-    name: Lint + Test + Coverage
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-
-      - run: npm ci
-      - run: npm run lint --if-present
-      - run: npm run format:check --if-present
-      - run: npm run test:cov
-      - run: npm run test:bdd --if-present
-
-      # TODO: integrar SonarQube Community Edition (self-hosted) para emitir relatórios.
-      # SonarCloud removido temporariamente — voltar com `sonar-scanner` apontando para a instância community.
-
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: coverage
-          path: coverage/
-
   docker:
     name: Build & Push Image
-    needs: test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: >-
+      ${{ github.event.workflow_run.conclusion == 'success' &&
+          github.event.workflow_run.head_branch == 'main' &&
+          github.event.workflow_run.event == 'push' }}
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - uses: docker/login-action@v3
         with:
@@ -62,14 +35,13 @@ jobs:
           push: true
           tags: |
             ${{ env.IMAGE_NAME }}:latest
-            ${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.IMAGE_NAME }}:${{ github.event.workflow_run.head_sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
   deploy:
     name: Deploy → EKS
     needs: docker
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: production
     env:
@@ -79,6 +51,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:
