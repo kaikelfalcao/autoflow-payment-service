@@ -1,5 +1,5 @@
 import { Given, When, Then } from '@cucumber/cucumber';
-import assert from 'assert';
+import { strict as assert } from 'node:assert';
 import type { BillingWorld } from '../support/world';
 
 Given('o Billing Service está operacional', function (this: BillingWorld) {

@@ -15,7 +15,7 @@ export class ChargeOrmEntity {
   @Column({ name: 'service_order_id', type: 'uuid' })
   serviceOrderId: string;
 
-  @Column({ name: 'customer_id', type: 'uuid' })
+  @Column({ name: 'customer_id', type: 'varchar', length: 64 })
   customerId: string;
 
   @Column({ name: 'total_cents', type: 'int' })

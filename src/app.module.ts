@@ -1,16 +1,18 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { envSchema } from './shared/infrastructure/config/env.schema';
 import { HealthModule } from './shared/infrastructure/health/health.module';
+import { LoggerModule } from './shared/logger/logger.module';
+import { CorrelationIdMiddleware } from './shared/middlewares/correlation-id.middleware';
 import { RabbitMqModule } from './infrastructure/messaging/rabbitmq.module';
 import { BillingModule } from './modules/billing/billing.module';
 import { ChargeOrmEntity } from './modules/billing/infrastructure/persistence/charge.typeorm.entity';
 import { WebhookEventOrmEntity } from './modules/billing/infrastructure/persistence/webhook-event.typeorm.entity';
-import { CreateChargesTable1 } from './modules/billing/infrastructure/persistence/migrations/1-CreateChargesTable';
-import { CreateWebhookEventsTable2 } from './modules/billing/infrastructure/persistence/migrations/2-CreateWebhookEventsTable';
-import { AddRefundedStatus3 } from './modules/billing/infrastructure/persistence/migrations/3-AddRefundedStatus';
+import { CreateChargesTable1700000010001 } from './modules/billing/infrastructure/persistence/migrations/1-CreateChargesTable';
+import { CreateWebhookEventsTable1700000010002 } from './modules/billing/infrastructure/persistence/migrations/2-CreateWebhookEventsTable';
+import { AddRefundedStatus1700000010003 } from './modules/billing/infrastructure/persistence/migrations/3-AddRefundedStatus';
 
 @Module({
   imports: [
@@ -20,6 +22,8 @@ import { AddRefundedStatus3 } from './modules/billing/infrastructure/persistence
       validationSchema: envSchema,
       validationOptions: { abortEarly: false },
     }),
+
+    LoggerModule,
 
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
@@ -32,8 +36,12 @@ import { AddRefundedStatus3 } from './modules/billing/infrastructure/persistence
         database: config.getOrThrow<string>('DB_NAME'),
         ssl: config.get('NODE_ENV') === 'production' ? { rejectUnauthorized: false } : false,
         entities: [ChargeOrmEntity, WebhookEventOrmEntity],
-        migrations: [CreateChargesTable1, CreateWebhookEventsTable2, AddRefundedStatus3],
-        migrationsRun: false,
+        migrations: [
+          CreateChargesTable1700000010001,
+          CreateWebhookEventsTable1700000010002,
+          AddRefundedStatus1700000010003,
+        ],
+        migrationsRun: true,
         synchronize: false,
         logging: config.get('NODE_ENV') !== 'production',
       }),
@@ -44,4 +52,8 @@ import { AddRefundedStatus3 } from './modules/billing/infrastructure/persistence
     BillingModule,
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(CorrelationIdMiddleware).forRoutes('*');
+  }
+}

@@ -9,6 +9,7 @@ import {
   MERCADO_PAGO_PORT,
   type IMercadoPagoPort,
 } from '../../../domain/ports/mercado-pago.port';
+import { recordBusinessEvent } from '@/shared/observability/business-events';
 
 export interface CreateChargeInput {
   serviceOrderId: string;
@@ -58,6 +59,12 @@ export class CreateChargeUseCase {
     this.logger.log(
       `Charge ${charge.id.value} created for order ${input.serviceOrderId}`,
     );
+    recordBusinessEvent('ChargeCreated', {
+      chargeId: charge.id.value,
+      orderId: input.serviceOrderId,
+      customerId: input.customerId,
+      totalCents: input.totalCents,
+    });
 
     return { chargeId: charge.id.value, checkoutUrl: preference.checkoutUrl };
   }

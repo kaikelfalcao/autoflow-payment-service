@@ -1,11 +1,14 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: billing
-  namespace: billing
+  name: payment-service
+  namespace: autoflow
 spec:
   selector:
-    app: billing
+    app: payment-service
   ports:
-    - port: 80
-      targetPort: 3001
+    - port: 3004
+      targetPort: 3004
+      protocol: TCP
+      name: http
+  type: ClusterIP

@@ -16,21 +16,34 @@ import { ChargeOrmEntity } from './infrastructure/persistence/charge.typeorm.ent
 import { ChargeTypeOrmRepository } from './infrastructure/persistence/charge.typeorm.repository';
 import { WebhookEventOrmEntity } from './infrastructure/persistence/webhook-event.typeorm.entity';
 import { WebhookEventTypeOrmRepository } from './infrastructure/persistence/webhook-event.typeorm.repository';
+import { ConfigService } from '@nestjs/config';
 import { MercadoPagoAdapter } from './infrastructure/mercado-pago/mercado-pago.adapter';
+import { MercadoPagoMockAdapter } from './infrastructure/mercado-pago/mercado-pago-mock.adapter';
 import { BillingEventPublisher } from './infrastructure/messaging/billing-event-publisher';
 import { PaymentRequestedConsumer } from './infrastructure/messaging/payment-requested-consumer';
 
 import { WebhookController } from './presentation/http/webhook.controller';
 import { ChargeController } from './presentation/http/charge.controller';
+import { MockPaymentController } from './presentation/http/mock-payment.controller';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([ChargeOrmEntity, WebhookEventOrmEntity]),
   ],
-  controllers: [WebhookController, ChargeController],
+  controllers: [WebhookController, ChargeController, MockPaymentController],
   providers: [
     { provide: CHARGE_REPOSITORY, useClass: ChargeTypeOrmRepository },
-    { provide: MERCADO_PAGO_PORT, useClass: MercadoPagoAdapter },
+    MercadoPagoMockAdapter,
+    {
+      provide: MERCADO_PAGO_PORT,
+      inject: [ConfigService, MercadoPagoMockAdapter],
+      useFactory: (config: ConfigService, mock: MercadoPagoMockAdapter) => {
+        const useMock =
+          config.get<boolean>('MP_MOCK') ||
+          !config.get<string>('MP_ACCESS_TOKEN');
+        return useMock ? mock : new MercadoPagoAdapter(config);
+      },
+    },
     { provide: EVENT_PUBLISHER_PORT, useClass: BillingEventPublisher },
     { provide: WEBHOOK_EVENT_REPOSITORY, useClass: WebhookEventTypeOrmRepository },
     CreateChargeUseCase,

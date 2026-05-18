@@ -7,6 +7,7 @@ import type { IEventPublisher, PaymentResultEvent } from '../../src/modules/bill
 import type { IWebhookEventRepository } from '../../src/modules/billing/application/use-cases/process-webhook/process-webhook.use-case';
 import { CreateChargeUseCase } from '../../src/modules/billing/application/use-cases/create-charge/create-charge.use-case';
 import { ProcessWebhookUseCase } from '../../src/modules/billing/application/use-cases/process-webhook/process-webhook.use-case';
+import { RequestContextService } from '../../src/shared/logger/request-context.service';
 
 // ── In-memory repository para BDD ────────────────────────────────────────────
 
@@ -49,7 +50,7 @@ class InMemoryChargeRepository implements IChargeRepository {
 
 class FakeMercadoPago implements IMercadoPagoPort {
   nextPreferenceId = 'pref-test-01';
-  nextStatus: IMercadoPagoPort extends { getPayment(id: string): Promise<infer R> } ? R['status'] : string = 'approved';
+  nextStatus: string = 'approved';
   private paymentStatus: Record<string, string> = {};
 
   setPaymentStatus(mpPaymentId: string, status: string): void {
@@ -97,6 +98,7 @@ export class BillingWorld extends World {
   mp = new FakeMercadoPago();
   publisher = new SpyEventPublisher();
   webhookRepo = new NoOpWebhookRepo();
+  requestCtx = new RequestContextService();
 
   createChargeUseCase = new CreateChargeUseCase(this.repo, this.mp);
   processWebhookUseCase = new ProcessWebhookUseCase(
@@ -104,6 +106,7 @@ export class BillingWorld extends World {
     this.mp,
     this.publisher,
     this.webhookRepo,
+    this.requestCtx,
   );
 
   // state between steps
