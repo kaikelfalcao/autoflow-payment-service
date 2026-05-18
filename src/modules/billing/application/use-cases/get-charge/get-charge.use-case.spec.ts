@@ -3,6 +3,10 @@ import type { IChargeRepository } from '../../../domain/charge.repository';
 import { Charge } from '../../../domain/charge.entity';
 import { ChargeId } from '../../../domain/value-objects/charge-id.vo';
 import { NotFoundException } from '@/shared/domain/exceptions/not-found.exception';
+import { RequestContextService } from '@/shared/logger/request-context.service';
+
+const mockRequestCtx = () =>
+  ({ set: jest.fn(), get: jest.fn(), snapshot: jest.fn() }) as unknown as RequestContextService;
 
 const fakeCharge = () =>
   Charge.restore({
@@ -31,7 +35,7 @@ describe('GetChargeUseCase', () => {
 
   beforeEach(() => {
     repo = mockRepo();
-    useCase = new GetChargeUseCase(repo);
+    useCase = new GetChargeUseCase(repo, mockRequestCtx());
   });
 
   describe('byId', () => {

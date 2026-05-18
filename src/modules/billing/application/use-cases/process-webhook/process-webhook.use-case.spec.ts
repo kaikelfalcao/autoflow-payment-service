@@ -5,6 +5,10 @@ import type { IEventPublisher } from '../../../domain/ports/event-publisher.port
 import { Charge } from '../../../domain/charge.entity';
 import { ChargeId } from '../../../domain/value-objects/charge-id.vo';
 import type { IWebhookEventRepository } from './process-webhook.use-case';
+import { RequestContextService } from '@/shared/logger/request-context.service';
+
+const mockRequestCtx = () =>
+  ({ set: jest.fn(), get: jest.fn(), snapshot: jest.fn() }) as unknown as RequestContextService;
 
 const pendingCharge = () =>
   Charge.restore({
@@ -58,7 +62,7 @@ describe('ProcessWebhookUseCase', () => {
     mp = mockMp();
     publisher = mockPublisher();
     webhookRepo = mockWebhookRepo();
-    useCase = new ProcessWebhookUseCase(repo, mp, publisher, webhookRepo);
+    useCase = new ProcessWebhookUseCase(repo, mp, publisher, webhookRepo, mockRequestCtx());
   });
 
   it('approves charge and publishes event when payment is approved', async () => {
