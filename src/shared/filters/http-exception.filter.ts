@@ -4,10 +4,10 @@ import {
   ExceptionFilter,
   HttpStatus,
   Logger,
-} from '@nestjs/common';
-import type { Response } from 'express';
-import { NotFoundException } from '../../shared/domain/exceptions/not-found.exception';
-import { BusinessRuleException } from '../../shared/domain/exceptions/business-rule.exception';
+} from "@nestjs/common";
+import type { Response } from "express";
+import { NotFoundException } from "../../shared/domain/exceptions/not-found.exception";
+import { BusinessRuleException } from "../../shared/domain/exceptions/business-rule.exception";
 
 @Catch(NotFoundException, BusinessRuleException)
 export class HttpExceptionFilter implements ExceptionFilter {

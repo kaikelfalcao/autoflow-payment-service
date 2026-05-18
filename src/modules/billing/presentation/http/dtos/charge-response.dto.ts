@@ -1,4 +1,4 @@
-import type { Charge } from '../../../domain/charge.entity';
+import type { Charge } from "../../../domain/charge.entity";
 
 export class ChargeResponseDto {
   chargeId: string;

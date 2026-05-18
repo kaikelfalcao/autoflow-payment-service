@@ -1,7 +1,7 @@
-import type { Charge } from './charge.entity';
-import type { ChargeId } from './value-objects/charge-id.vo';
+import type { Charge } from "./charge.entity";
+import type { ChargeId } from "./value-objects/charge-id.vo";
 
-export const CHARGE_REPOSITORY = Symbol('CHARGE_REPOSITORY');
+export const CHARGE_REPOSITORY = Symbol("CHARGE_REPOSITORY");
 
 export interface IChargeRepository {
   save(charge: Charge): Promise<void>;

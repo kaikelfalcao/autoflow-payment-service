@@ -1,11 +1,11 @@
-import { Type } from 'class-transformer';
+import { Type } from "class-transformer";
 import {
   IsNotEmpty,
   IsObject,
   IsOptional,
   IsString,
   ValidateNested,
-} from 'class-validator';
+} from "class-validator";
 
 export class MpWebhookDataDto {
   @IsString()

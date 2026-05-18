@@ -1,15 +1,15 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
-import { Charge } from '../../../domain/charge.entity';
-import { ChargeId } from '../../../domain/value-objects/charge-id.vo';
+import { Inject, Injectable, Logger } from "@nestjs/common";
+import { Charge } from "../../../domain/charge.entity";
+import { ChargeId } from "../../../domain/value-objects/charge-id.vo";
 import {
   CHARGE_REPOSITORY,
   type IChargeRepository,
-} from '../../../domain/charge.repository';
+} from "../../../domain/charge.repository";
 import {
   MERCADO_PAGO_PORT,
   type IMercadoPagoPort,
-} from '../../../domain/ports/mercado-pago.port';
-import { recordBusinessEvent } from '@/shared/observability/business-events';
+} from "../../../domain/ports/mercado-pago.port";
+import { recordBusinessEvent } from "@/shared/observability/business-events";
 
 export interface CreateChargeInput {
   serviceOrderId: string;
@@ -34,10 +34,17 @@ export class CreateChargeUseCase {
   ) {}
 
   async execute(input: CreateChargeInput): Promise<CreateChargeOutput> {
-    const existing = await this.charges.findByServiceOrderId(input.serviceOrderId);
+    const existing = await this.charges.findByServiceOrderId(
+      input.serviceOrderId,
+    );
     if (existing) {
-      this.logger.warn(`Charge already exists for order ${input.serviceOrderId}`);
-      return { chargeId: existing.id.value, checkoutUrl: existing.checkoutUrl ?? '' };
+      this.logger.warn(
+        `Charge already exists for order ${input.serviceOrderId}`,
+      );
+      return {
+        chargeId: existing.id.value,
+        checkoutUrl: existing.checkoutUrl ?? "",
+      };
     }
 
     const charge = Charge.create({
@@ -59,7 +66,7 @@ export class CreateChargeUseCase {
     this.logger.log(
       `Charge ${charge.id.value} created for order ${input.serviceOrderId}`,
     );
-    recordBusinessEvent('ChargeCreated', {
+    recordBusinessEvent("ChargeCreated", {
       chargeId: charge.id.value,
       orderId: input.serviceOrderId,
       customerId: input.customerId,

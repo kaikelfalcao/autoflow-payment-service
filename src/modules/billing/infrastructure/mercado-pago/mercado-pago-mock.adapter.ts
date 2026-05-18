@@ -1,23 +1,33 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { randomUUID } from 'node:crypto';
+import { Injectable, Logger } from "@nestjs/common";
+import { randomUUID } from "node:crypto";
 
 import type {
   IMercadoPagoPort,
   CreatePreferenceInput,
   CreatePreferenceOutput,
   GetPaymentOutput,
-} from '../../domain/ports/mercado-pago.port';
+} from "../../domain/ports/mercado-pago.port";
 
 @Injectable()
 export class MercadoPagoMockAdapter implements IMercadoPagoPort {
   private readonly logger = new Logger(MercadoPagoMockAdapter.name);
-  private readonly payments = new Map<string, { externalReference: string; status: 'approved' | 'rejected' | 'pending' }>();
+  private readonly payments = new Map<
+    string,
+    { externalReference: string; status: "approved" | "rejected" | "pending" }
+  >();
 
-  async createPreference(input: CreatePreferenceInput): Promise<CreatePreferenceOutput> {
+  async createPreference(
+    input: CreatePreferenceInput,
+  ): Promise<CreatePreferenceOutput> {
     const preferenceId = `mock-pref-${randomUUID()}`;
     const mockPaymentId = `mock-pay-${randomUUID()}`;
-    this.payments.set(mockPaymentId, { externalReference: input.serviceOrderId, status: 'pending' });
-    this.logger.log(`[MOCK] Preference ${preferenceId} for order ${input.serviceOrderId} (totalCents=${input.totalCents})`);
+    this.payments.set(mockPaymentId, {
+      externalReference: input.serviceOrderId,
+      status: "pending",
+    });
+    this.logger.log(
+      `[MOCK] Preference ${preferenceId} for order ${input.serviceOrderId} (totalCents=${input.totalCents})`,
+    );
     return Promise.resolve({
       preferenceId,
       checkoutUrl: `http://localhost:3004/billing/mock/checkout/${mockPaymentId}`,
@@ -28,7 +38,11 @@ export class MercadoPagoMockAdapter implements IMercadoPagoPort {
     const data = this.payments.get(mpPaymentId);
     if (!data) {
       this.logger.warn(`[MOCK] Payment ${mpPaymentId} not found`);
-      return Promise.resolve({ mpPaymentId, status: 'pending', externalReference: '' });
+      return Promise.resolve({
+        mpPaymentId,
+        status: "pending",
+        externalReference: "",
+      });
     }
     return Promise.resolve({
       mpPaymentId,
@@ -37,7 +51,10 @@ export class MercadoPagoMockAdapter implements IMercadoPagoPort {
     });
   }
 
-  setStatus(mpPaymentId: string, status: 'approved' | 'rejected' | 'pending'): void {
+  setStatus(
+    mpPaymentId: string,
+    status: "approved" | "rejected" | "pending",
+  ): void {
     const data = this.payments.get(mpPaymentId);
     if (data) {
       data.status = status;
@@ -45,7 +62,11 @@ export class MercadoPagoMockAdapter implements IMercadoPagoPort {
     }
   }
 
-  registerExternal(mpPaymentId: string, externalReference: string, status: 'approved' | 'rejected' | 'pending' = 'pending'): void {
+  registerExternal(
+    mpPaymentId: string,
+    externalReference: string,
+    status: "approved" | "rejected" | "pending" = "pending",
+  ): void {
     this.payments.set(mpPaymentId, { externalReference, status });
   }
 }

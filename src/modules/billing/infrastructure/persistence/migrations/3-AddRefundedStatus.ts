@@ -1,7 +1,7 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import { MigrationInterface, QueryRunner } from "typeorm";
 
 export class AddRefundedStatus1700000010003 implements MigrationInterface {
-  name = 'AddRefundedStatus1700000010003';
+  name = "AddRefundedStatus1700000010003";
 
   async up(runner: QueryRunner): Promise<void> {
     await runner.query(`ALTER TYPE charge_status_enum ADD VALUE 'REFUNDED'`);

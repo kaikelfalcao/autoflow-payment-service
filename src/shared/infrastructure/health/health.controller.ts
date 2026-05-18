@@ -1,11 +1,11 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get } from "@nestjs/common";
 import {
   HealthCheck,
   HealthCheckService,
   TypeOrmHealthIndicator,
-} from '@nestjs/terminus';
-import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource } from 'typeorm';
+} from "@nestjs/terminus";
+import { InjectDataSource } from "@nestjs/typeorm";
+import { DataSource } from "typeorm";
 
 @Controller()
 export class HealthController {
@@ -15,36 +15,36 @@ export class HealthController {
     @InjectDataSource() private readonly dataSource: DataSource,
   ) {}
 
-  @Get('health')
+  @Get("health")
   async check(): Promise<{
-    status: 'ok' | 'degraded';
+    status: "ok" | "degraded";
     service: string;
-    postgres: 'connected' | 'error';
+    postgres: "connected" | "error";
     timestamp: string;
   }> {
-    let postgres: 'connected' | 'error' = 'error';
+    let postgres: "connected" | "error" = "error";
     try {
-      await this.dataSource.query('SELECT 1');
-      postgres = 'connected';
+      await this.dataSource.query("SELECT 1");
+      postgres = "connected";
     } catch {
-      postgres = 'error';
+      postgres = "error";
     }
     return {
-      status: postgres === 'connected' ? 'ok' : 'degraded',
-      service: 'autoflow-payment-service',
+      status: postgres === "connected" ? "ok" : "degraded",
+      service: "autoflow-payment-service",
       postgres,
       timestamp: new Date().toISOString(),
     };
   }
 
-  @Get('billing/health/liveness')
+  @Get("billing/health/liveness")
   liveness() {
-    return { status: 'ok' };
+    return { status: "ok" };
   }
 
-  @Get('billing/health/readiness')
+  @Get("billing/health/readiness")
   @HealthCheck()
   readiness() {
-    return this.health.check([() => this.db.pingCheck('postgres')]);
+    return this.health.check([() => this.db.pingCheck("postgres")]);
   }
 }

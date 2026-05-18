@@ -1,13 +1,16 @@
-import { setWorldConstructor, World } from '@cucumber/cucumber';
-import { Charge } from '../../src/modules/billing/domain/charge.entity';
-import { ChargeId } from '../../src/modules/billing/domain/value-objects/charge-id.vo';
-import type { IChargeRepository } from '../../src/modules/billing/domain/charge.repository';
-import type { IMercadoPagoPort } from '../../src/modules/billing/domain/ports/mercado-pago.port';
-import type { IEventPublisher, PaymentResultEvent } from '../../src/modules/billing/domain/ports/event-publisher.port';
-import type { IWebhookEventRepository } from '../../src/modules/billing/application/use-cases/process-webhook/process-webhook.use-case';
-import { CreateChargeUseCase } from '../../src/modules/billing/application/use-cases/create-charge/create-charge.use-case';
-import { ProcessWebhookUseCase } from '../../src/modules/billing/application/use-cases/process-webhook/process-webhook.use-case';
-import { RequestContextService } from '../../src/shared/logger/request-context.service';
+import { setWorldConstructor, World } from "@cucumber/cucumber";
+import { Charge } from "../../src/modules/billing/domain/charge.entity";
+import { ChargeId } from "../../src/modules/billing/domain/value-objects/charge-id.vo";
+import type { IChargeRepository } from "../../src/modules/billing/domain/charge.repository";
+import type { IMercadoPagoPort } from "../../src/modules/billing/domain/ports/mercado-pago.port";
+import type {
+  IEventPublisher,
+  PaymentResultEvent,
+} from "../../src/modules/billing/domain/ports/event-publisher.port";
+import type { IWebhookEventRepository } from "../../src/modules/billing/application/use-cases/process-webhook/process-webhook.use-case";
+import { CreateChargeUseCase } from "../../src/modules/billing/application/use-cases/create-charge/create-charge.use-case";
+import { ProcessWebhookUseCase } from "../../src/modules/billing/application/use-cases/process-webhook/process-webhook.use-case";
+import { RequestContextService } from "../../src/shared/logger/request-context.service";
 
 // ── In-memory repository para BDD ────────────────────────────────────────────
 
@@ -49,15 +52,17 @@ class InMemoryChargeRepository implements IChargeRepository {
 // ── MP mock ───────────────────────────────────────────────────────────────────
 
 class FakeMercadoPago implements IMercadoPagoPort {
-  nextPreferenceId = 'pref-test-01';
-  nextStatus: string = 'approved';
+  nextPreferenceId = "pref-test-01";
+  nextStatus: string = "approved";
   private paymentStatus: Record<string, string> = {};
 
   setPaymentStatus(mpPaymentId: string, status: string): void {
     this.paymentStatus[mpPaymentId] = status;
   }
 
-  async createPreference(input: Parameters<IMercadoPagoPort['createPreference']>[0]) {
+  async createPreference(
+    input: Parameters<IMercadoPagoPort["createPreference"]>[0],
+  ) {
     return {
       preferenceId: this.nextPreferenceId,
       checkoutUrl: `https://sandbox.mercadopago.com/checkout/${this.nextPreferenceId}`,
@@ -67,12 +72,12 @@ class FakeMercadoPago implements IMercadoPagoPort {
   async getPayment(mpPaymentId: string) {
     return {
       mpPaymentId,
-      status: (this.paymentStatus[mpPaymentId] ?? 'pending') as any,
+      status: (this.paymentStatus[mpPaymentId] ?? "pending") as any,
       externalReference: this._lastServiceOrderId,
     };
   }
 
-  _lastServiceOrderId = '';
+  _lastServiceOrderId = "";
 }
 
 // ── Event publisher spy ───────────────────────────────────────────────────────
@@ -110,8 +115,8 @@ export class BillingWorld extends World {
   );
 
   // state between steps
-  currentServiceOrderId = '';
-  currentCustomerId = '';
+  currentServiceOrderId = "";
+  currentCustomerId = "";
   currentTotalCents = 0;
   currentCharge: Charge | null = null;
 }

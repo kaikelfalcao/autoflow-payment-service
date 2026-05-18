@@ -1,7 +1,7 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import { MigrationInterface, QueryRunner } from "typeorm";
 
 export class CreateChargesTable1700000010001 implements MigrationInterface {
-  name = 'CreateChargesTable1700000010001';
+  name = "CreateChargesTable1700000010001";
 
   async up(runner: QueryRunner): Promise<void> {
     await runner.query(`
