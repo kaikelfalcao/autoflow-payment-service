@@ -25,7 +25,9 @@ describe("ChargeTypeOrmRepository", () => {
     });
     await chargeRepo.save(charge);
     expect(typeOrmRepo.save).toHaveBeenCalled();
-    const arg = (typeOrmRepo.save.mock.calls[0] as unknown as [{ id: string }])[0];
+    const arg = (
+      typeOrmRepo.save.mock.calls[0] as unknown as [{ id: string }]
+    )[0];
     expect(arg.id).toBe(charge.id.value);
   });
 

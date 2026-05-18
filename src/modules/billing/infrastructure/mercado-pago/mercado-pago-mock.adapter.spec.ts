@@ -15,7 +15,9 @@ describe("MercadoPagoMockAdapter", () => {
         totalCents: 10000,
       });
       expect(out.preferenceId).toMatch(/^mock-pref-/);
-      expect(out.checkoutUrl).toMatch(/^http:\/\/localhost:3004\/billing\/mock\/checkout\/mock-pay-/);
+      expect(out.checkoutUrl).toMatch(
+        /^http:\/\/localhost:3004\/billing\/mock\/checkout\/mock-pay-/,
+      );
     });
 
     it("registra payment em status pending por padrão", async () => {

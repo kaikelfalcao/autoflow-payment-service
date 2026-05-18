@@ -13,14 +13,16 @@ let capturedSetup:
 
 jest.mock("amqp-connection-manager", () => ({
   connect: jest.fn().mockReturnValue({
-    createChannel: jest.fn().mockImplementation(({ setup }: { setup: typeof capturedSetup }) => {
-      capturedSetup = setup;
-      return {
-        on: (event: string, h: (err: unknown) => void) => {
-          channelHandlers[event] = h;
-        },
-      };
-    }),
+    createChannel: jest
+      .fn()
+      .mockImplementation(({ setup }: { setup: typeof capturedSetup }) => {
+        capturedSetup = setup;
+        return {
+          on: (event: string, h: (err: unknown) => void) => {
+            channelHandlers[event] = h;
+          },
+        };
+      }),
   }),
 }));
 
@@ -71,7 +73,12 @@ describe("PaymentRequestedConsumer", () => {
     await consumer.onModuleInit();
     await capturedSetup!(ch);
 
-    const handler = (ch.consume.mock.calls[0] as unknown as [unknown, (msg: unknown) => Promise<void>])[1];
+    const handler = (
+      ch.consume.mock.calls[0] as unknown as [
+        unknown,
+        (msg: unknown) => Promise<void>,
+      ]
+    )[1];
     const msg = {
       content: Buffer.from(
         JSON.stringify({
@@ -107,11 +114,23 @@ describe("PaymentRequestedConsumer", () => {
     await consumer.onModuleInit();
     await capturedSetup!(ch);
 
-    const handler = (ch.consume.mock.calls[0] as unknown as [unknown, (msg: unknown) => Promise<void>])[1];
+    const handler = (
+      ch.consume.mock.calls[0] as unknown as [
+        unknown,
+        (msg: unknown) => Promise<void>,
+      ]
+    )[1];
     const msg = {
       content: Buffer.from(
         JSON.stringify({
-          payload: { orderId: "x", totalAmount: 1, customerCpf: "", customerName: "", customerEmail: null, items: [] },
+          payload: {
+            orderId: "x",
+            totalAmount: 1,
+            customerCpf: "",
+            customerName: "",
+            customerEmail: null,
+            items: [],
+          },
         }),
       ),
     };
@@ -130,7 +149,12 @@ describe("PaymentRequestedConsumer", () => {
     await consumer.onModuleInit();
     await capturedSetup!(ch);
 
-    const handler = (ch.consume.mock.calls[0] as unknown as [unknown, (msg: unknown) => Promise<void>])[1];
+    const handler = (
+      ch.consume.mock.calls[0] as unknown as [
+        unknown,
+        (msg: unknown) => Promise<void>,
+      ]
+    )[1];
     await handler(null);
 
     expect(useCase.execute).not.toHaveBeenCalled();
