@@ -22,7 +22,7 @@ describe("ChargeController", () => {
     const result = await ctrl.getById(charge.id.value);
 
     expect(useCase.byId).toHaveBeenCalledWith(charge.id.value);
-    expect(result.id).toBe(charge.id.value);
+    expect(result.chargeId).toBe(charge.id.value);
     expect(result.serviceOrderId).toBe("order-1");
   });
 
