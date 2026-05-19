@@ -1,6 +1,7 @@
 # Dependências
 node_modules/
 *.tsbuildinfo
+.nvmrc
 
 # Build
 dist/
