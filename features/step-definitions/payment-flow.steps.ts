@@ -75,7 +75,7 @@ Then(
 Then("a cobrança possui um checkout URL válido", function (this: BillingWorld) {
   assert.ok(this.currentCharge?.checkoutUrl, "Checkout URL should be set");
   assert.ok(
-    this.currentCharge.checkoutUrl!.startsWith("https://"),
+    this.currentCharge.checkoutUrl.startsWith("https://"),
     "Checkout URL should be HTTPS",
   );
 });

@@ -9,7 +9,7 @@ describe("WebhookController", () => {
       type: "merchant_order",
       action: "anything",
       data: { id: "1" },
-    } as never);
+    });
 
     expect(useCase.execute).not.toHaveBeenCalled();
   });
@@ -25,7 +25,7 @@ describe("WebhookController", () => {
       foo: "bar",
     };
 
-    await ctrl.handleMpWebhook(dto as never);
+    await ctrl.handleMpWebhook(dto);
 
     expect(useCase.execute).toHaveBeenCalledWith({
       mpPaymentId: "pay-123",

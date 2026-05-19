@@ -3,7 +3,6 @@ import {
   CHARGE_REPOSITORY,
   type IChargeRepository,
 } from "../../../domain/charge.repository";
-import { ChargeId } from "../../../domain/value-objects/charge-id.vo";
 import {
   MERCADO_PAGO_PORT,
   type IMercadoPagoPort,
