@@ -54,7 +54,7 @@ export class CanonicalLogInterceptor implements NestInterceptor {
       code?: string;
     } | null;
     const status = err ? (errObj?.status ?? 500) : res.statusCode;
-    const level = status >= 500 ? "error" : status >= 400 ? "warn" : "info";
+    const level = pickLogLevel(status);
     const path =
       (req as Request & { route?: { path?: string } }).route?.path ??
       req.path ??
@@ -83,4 +83,10 @@ export class CanonicalLogInterceptor implements NestInterceptor {
       ...accrued,
     });
   }
+}
+
+function pickLogLevel(status: number): "error" | "warn" | "info" {
+  if (status >= 500) return "error";
+  if (status >= 400) return "warn";
+  return "info";
 }

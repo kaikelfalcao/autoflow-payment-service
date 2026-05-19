@@ -28,27 +28,27 @@ export class MercadoPagoMockAdapter implements IMercadoPagoPort {
     this.logger.log(
       `[MOCK] Preference ${preferenceId} for order ${input.serviceOrderId} (totalCents=${input.totalCents})`,
     );
-    return Promise.resolve({
+    return {
       preferenceId,
       checkoutUrl: `http://localhost:3004/billing/mock/checkout/${mockPaymentId}`,
-    });
+    };
   }
 
   async getPayment(mpPaymentId: string): Promise<GetPaymentOutput> {
     const data = this.payments.get(mpPaymentId);
     if (!data) {
       this.logger.warn(`[MOCK] Payment ${mpPaymentId} not found`);
-      return Promise.resolve({
+      return {
         mpPaymentId,
         status: "pending",
         externalReference: "",
-      });
+      };
     }
-    return Promise.resolve({
+    return {
       mpPaymentId,
       status: data.status,
       externalReference: data.externalReference,
-    });
+    };
   }
 
   setStatus(

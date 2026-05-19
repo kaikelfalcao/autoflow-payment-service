@@ -36,7 +36,7 @@ describe("ChargeMapper", () => {
       customerId: "cust-2",
       totalCents: 4321,
     });
-    charge.attachPreference("pref-1", "http://checkout/1");
+    charge.attachPreference("pref-1", "https://checkout/1");
 
     const orm = ChargeMapper.toOrm(charge);
 
@@ -46,7 +46,7 @@ describe("ChargeMapper", () => {
     expect(orm.totalCents).toBe(4321);
     expect(orm.status).toBe("PENDING");
     expect(orm.mpPreferenceId).toBe("pref-1");
-    expect(orm.checkoutUrl).toBe("http://checkout/1");
+    expect(orm.checkoutUrl).toBe("https://checkout/1");
     expect(orm.createdAt).toBeInstanceOf(Date);
     expect(orm.updatedAt).toBeInstanceOf(Date);
   });
