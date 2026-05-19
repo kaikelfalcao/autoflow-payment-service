@@ -1,5 +1,5 @@
 # Roda migrations do payment-service (charges, webhook_events).
-# Usa o AppDataSource já configurado em src/data-source.ts.
+# Usa o AppDataSource compilado em dist/data-source.js (rootDir=src no tsconfig.build).
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -18,7 +18,7 @@ spec:
             - node
             - -e
             - |
-              const { AppDataSource } = require('./dist/src/data-source');
+              const { AppDataSource } = require('./dist/data-source');
               AppDataSource.initialize()
                 .then(() => AppDataSource.runMigrations())
                 .then((m) => {
