@@ -167,7 +167,7 @@ npm run format:check   # Prettier
 
 **Coverage atual:** **92.71 / 82.29 / 90.10 / 92.68** (statements / branches / functions / lines).
 
-> **TODO:** SonarQube Community.
+> **Análise estática:** CodeQL via GitHub Actions (`.github/workflows/codeQL.yml`) — varredura de segurança em pushes na `main` e em pull requests.
 
 ---
 
