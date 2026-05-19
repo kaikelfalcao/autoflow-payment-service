@@ -1,14 +1,14 @@
-export const EVENT_PUBLISHER_PORT = Symbol('EVENT_PUBLISHER_PORT');
+export const EVENT_PUBLISHER_PORT = Symbol("EVENT_PUBLISHER_PORT");
 
 export interface PaymentApprovedEvent {
-  type: 'payment.approved';
+  type: "payment.approved";
   serviceOrderId: string;
   chargeId: string;
   mpPaymentId: string;
 }
 
 export interface PaymentRejectedEvent {
-  type: 'payment.rejected';
+  type: "payment.rejected";
   serviceOrderId: string;
   chargeId: string;
   mpPaymentId: string;
@@ -16,14 +16,17 @@ export interface PaymentRejectedEvent {
 }
 
 export interface PaymentRefundedEvent {
-  type: 'payment.refunded';
+  type: "payment.refunded";
   serviceOrderId: string;
   chargeId: string;
   mpPaymentId: string;
   reason?: string;
 }
 
-export type PaymentResultEvent = PaymentApprovedEvent | PaymentRejectedEvent | PaymentRefundedEvent;
+export type PaymentResultEvent =
+  | PaymentApprovedEvent
+  | PaymentRejectedEvent
+  | PaymentRefundedEvent;
 
 export interface IEventPublisher {
   publishPaymentResult(event: PaymentResultEvent): Promise<void>;

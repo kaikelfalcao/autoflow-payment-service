@@ -1,8 +1,8 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import type { IWebhookEventRepository } from '../../application/use-cases/process-webhook/process-webhook.use-case';
-import { WebhookEventOrmEntity } from './webhook-event.typeorm.entity';
+import { Injectable } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import type { IWebhookEventRepository } from "../../application/use-cases/process-webhook/process-webhook.use-case";
+import { WebhookEventOrmEntity } from "./webhook-event.typeorm.entity";
 
 @Injectable()
 export class WebhookEventTypeOrmRepository implements IWebhookEventRepository {

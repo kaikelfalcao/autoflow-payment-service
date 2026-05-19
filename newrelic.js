@@ -2,7 +2,7 @@
 
 exports.config = {
   agent_enabled: process.env.NEW_RELIC_ENABLED === 'true',
-  app_name: [process.env.NEW_RELIC_APP_NAME ?? 'autoflow-billing'],
+  app_name: [process.env.NEW_RELIC_APP_NAME ?? 'autoflow-payment'],
   license_key: process.env.NEW_RELIC_LICENSE_KEY ?? '',
   logging: {
     level: process.env.NEW_RELIC_LOG_LEVEL || 'info',

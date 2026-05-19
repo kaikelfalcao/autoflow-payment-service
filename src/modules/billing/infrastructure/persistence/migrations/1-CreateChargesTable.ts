@@ -1,7 +1,7 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class CreateChargesTable1 implements MigrationInterface {
-  name = 'CreateChargesTable1';
+export class CreateChargesTable1700000010001 implements MigrationInterface {
+  name = "CreateChargesTable1700000010001";
 
   async up(runner: QueryRunner): Promise<void> {
     await runner.query(`
@@ -10,7 +10,7 @@ export class CreateChargesTable1 implements MigrationInterface {
       CREATE TABLE charges (
         id                UUID            NOT NULL,
         service_order_id  UUID            NOT NULL,
-        customer_id       UUID            NOT NULL,
+        customer_id       VARCHAR(64)     NOT NULL,
         total_cents       INT             NOT NULL,
         status            charge_status_enum NOT NULL DEFAULT 'PENDING',
         mp_preference_id  VARCHAR,

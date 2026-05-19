@@ -1,7 +1,7 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class CreateWebhookEventsTable2 implements MigrationInterface {
-  name = 'CreateWebhookEventsTable2';
+export class CreateWebhookEventsTable1700000010002 implements MigrationInterface {
+  name = "CreateWebhookEventsTable1700000010002";
 
   async up(runner: QueryRunner): Promise<void> {
     await runner.query(`

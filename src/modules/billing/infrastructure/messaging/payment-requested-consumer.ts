@@ -1,8 +1,8 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { connect } from 'amqp-connection-manager';
-import { ConfirmChannel, ConsumeMessage } from 'amqplib';
-import { BaseEvent } from '../../../../infrastructure/messaging/event-publisher.service';
-import { CreateChargeUseCase } from '../../application/use-cases/create-charge/create-charge.use-case';
+import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
+import { connect } from "amqp-connection-manager";
+import { ConfirmChannel, ConsumeMessage } from "amqplib";
+import { BaseEvent } from "../../../../infrastructure/messaging/event-publisher.service";
+import { CreateChargeUseCase } from "../../application/use-cases/create-charge/create-charge.use-case";
 
 interface PaymentRequestedPayload {
   orderId: string;
@@ -25,30 +25,38 @@ export class PaymentRequestedConsumer implements OnModuleInit {
   constructor(private readonly createCharge: CreateChargeUseCase) {}
 
   async onModuleInit(): Promise<void> {
-    const rabbitUrl = process.env.RABBITMQ_URL || 'amqp://localhost:5672';
+    const rabbitUrl = process.env.RABBITMQ_URL || "amqp://localhost:5672";
     const connection = connect([rabbitUrl]);
 
     const channel = connection.createChannel({
       setup: async (currentChannel: ConfirmChannel) => {
-        await currentChannel.assertExchange('order.events', 'topic', { durable: true });
+        await currentChannel.assertExchange("order.events", "topic", {
+          durable: true,
+        });
 
-        await currentChannel.assertQueue('billing.payment.requested', { durable: true });
+        await currentChannel.assertQueue("billing.payment.requested", {
+          durable: true,
+        });
         await currentChannel.bindQueue(
-          'billing.payment.requested',
-          'order.events',
-          'order.payment.requested',
+          "billing.payment.requested",
+          "order.events",
+          "order.payment.requested",
         );
 
         await currentChannel.consume(
-          'billing.payment.requested',
+          "billing.payment.requested",
           async (message: ConsumeMessage | null) => {
             if (!message) return;
 
             try {
-              const event = JSON.parse(message.content.toString()) as BaseEvent<PaymentRequestedPayload>;
+              const event = JSON.parse(
+                message.content.toString(),
+              ) as BaseEvent<PaymentRequestedPayload>;
               const { payload } = event;
 
-              this.logger.log(`Processing payment.requested for order ${payload.orderId}`);
+              this.logger.log(
+                `Processing payment.requested for order ${payload.orderId}`,
+              );
 
               await this.createCharge.execute({
                 serviceOrderId: payload.orderId,
@@ -58,8 +66,11 @@ export class PaymentRequestedConsumer implements OnModuleInit {
 
               currentChannel.ack(message);
             } catch (error) {
-              const reason = error instanceof Error ? error.message : 'unknown-error';
-              this.logger.warn(`Failed to process payment.requested: ${reason}`);
+              const reason =
+                error instanceof Error ? error.message : "unknown-error";
+              this.logger.warn(
+                `Failed to process payment.requested: ${reason}`,
+              );
               currentChannel.nack(message, false, false);
             }
           },
@@ -67,8 +78,8 @@ export class PaymentRequestedConsumer implements OnModuleInit {
       },
     });
 
-    channel.on('error', (error) => {
-      const reason = error instanceof Error ? error.message : 'unknown-error';
+    channel.on("error", (error) => {
+      const reason = error instanceof Error ? error.message : "unknown-error";
       this.logger.warn(`Payment requested consumer channel error: ${reason}`);
     });
   }

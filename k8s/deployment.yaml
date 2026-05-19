@@ -1,28 +1,29 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: billing
-  namespace: billing
+  name: payment-service
+  namespace: autoflow
   labels:
-    app: billing
+    app: payment-service
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: billing
+      app: payment-service
   template:
     metadata:
       labels:
-        app: billing
+        app: payment-service
     spec:
       containers:
-        - name: billing
-          image: kaikelfalcao/autoflow-billing:latest
+        - name: payment-service
+          image: kaikelfalcao/autoflow-payment:latest
+          imagePullPolicy: Always
           ports:
-            - containerPort: 3001
+            - containerPort: 3004
           envFrom:
             - secretRef:
-                name: billing-secrets
+                name: payment-secrets
           resources:
             requests:
               cpu: 200m
@@ -32,15 +33,15 @@ spec:
               memory: 512Mi
           livenessProbe:
             httpGet:
-              path: /billing/health/liveness
-              port: 3001
+              path: /health
+              port: 3004
             initialDelaySeconds: 30
             periodSeconds: 30
             failureThreshold: 3
           readinessProbe:
             httpGet:
-              path: /billing/health/readiness
-              port: 3001
-            initialDelaySeconds: 15
+              path: /health
+              port: 3004
+            initialDelaySeconds: 10
             periodSeconds: 10
             failureThreshold: 3

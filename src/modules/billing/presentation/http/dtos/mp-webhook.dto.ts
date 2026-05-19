@@ -1,16 +1,30 @@
-import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { Type } from "class-transformer";
+import {
+  IsNotEmpty,
+  IsObject,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from "class-validator";
+
+export class MpWebhookDataDto {
+  @IsString()
+  @IsNotEmpty()
+  id!: string;
+}
 
 export class MpWebhookDto {
-  @IsNumber()
-  id: number;
+  @IsString()
+  @IsNotEmpty()
+  type!: string;
 
   @IsString()
   @IsNotEmpty()
-  type: string;
+  action!: string;
 
-  @IsString()
-  @IsNotEmpty()
-  action: string;
-
-  data: { id: string };
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => MpWebhookDataDto)
+  data!: MpWebhookDataDto;
 }
